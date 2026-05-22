@@ -211,6 +211,9 @@ class PlejdCloudSite:
                 else:
                     device = details.find_device(deviceId=settings.deviceId)
 
+                if not device:
+                    continue
+
                 room = details.find_room(device.roomId)
 
                 yield {
