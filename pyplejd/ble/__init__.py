@@ -32,7 +32,7 @@ class MeshDevice:
 
     def see(self, rssi, bleDevice: BLEDevice) -> bool:
         # Returns true if first seen
-        if (first_seen := (self.rssi is None)):
+        if first_seen := (self.rssi is None):
             self.bleDevice = bleDevice
             self.rssi = rssi
 
@@ -127,6 +127,16 @@ class PlejdMesh:
         for node in sorted_nodes:
             try:
                 _CONNECTION_LOG.debug("Attempting to connect to %s", node)
+                client = await establish_connection(
+                    BleakClientWithServiceCache,
+                    node.bleDevice,
+                    node.bleDevice.name,
+                    _disconnect,
+                )
+
+                # Workaround for problem in plejd firmware 2026-05-20
+                # Disconnect and connect again
+                await client.disconnect()
                 client = await establish_connection(
                     BleakClientWithServiceCache,
                     node.bleDevice,
@@ -270,7 +280,7 @@ class PlejdMesh:
             return False
         try:
             _CONNECTION_LOG.debug("Authenticating with plejd mesh")
-            await client.write_gatt_char(gatt.PLEJD_AUTH, b"\0x00", response=True)
+            await client.write_gatt_char(gatt.PLEJD_AUTH, b"\x00", response=True)
             challenge = await client.read_gatt_char(gatt.PLEJD_AUTH)
             response = auth_response(self._crypto_key, challenge)
             await client.write_gatt_char(gatt.PLEJD_AUTH, response, response=True)
